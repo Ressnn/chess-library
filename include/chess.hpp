@@ -25,7 +25,7 @@ THIS FILE IS AUTO GENERATED DO NOT CHANGE MANUALLY.
 
 Source: https://github.com/Disservin/chess-library
 
-VERSION: 0.6.45
+VERSION: 0.6.46
 */
 
 #ifndef CHESS_HPP
@@ -3474,7 +3474,8 @@ class StreamParser {
 
         void operator+=(char c) {
             assert(index_ < N);
-            buffer_[index_++] = c;
+            buffer_[index_] = c;
+            ++index_;
         }
 
         void remove_suffix(std::size_t n) {
@@ -3513,7 +3514,7 @@ class StreamParser {
                     const auto c = buffer_[buffer_index_];
 
                     if (c == '\r') {
-                        buffer_index_++;
+                        ++buffer_index_;
                         continue;
                     }
 
@@ -3545,13 +3546,13 @@ class StreamParser {
                 }
 
                 if (*ret == open_delim) {
-                    stack++;
+                    ++stack;
                 } else if (*ret == close_delim) {
                     if (stack == 0) {
                         // Mismatched closing delimiter
                         return false;
                     } else {
-                        stack--;
+                        --stack;
                         if (stack == 0) {
                             // Matching closing delimiter found
                             return true;
@@ -3580,7 +3581,7 @@ class StreamParser {
                 fill();
             }
 
-            buffer_index_++;
+            ++buffer_index_;
         }
 
         char peek() {
@@ -3831,7 +3832,7 @@ class StreamParser {
                     onEnd();
                     return true;
                 } else if (peek == '/') {
-                    for (size_t i = 0; i <= 6; i++) {
+                    for (size_t i = 0; i <= 6; ++i) {
                         stream_buffer.advance();
                     }
 
@@ -3876,17 +3877,23 @@ class StreamParser {
     }
 
     bool parseMove() {
-        // reading move
-        stream_buffer.loop([this](char c) {
-            if (is_space(c)) {
+        while (true) {
+            const auto c = stream_buffer.current();
+
+            if (!c.has_value()) {
+                onEnd();
                 return true;
             }
 
-            move += c;
+            if (is_space(*c)) {
+                stream_buffer.advance();
+                break;
+            }
+
+            move += *c;
 
             stream_buffer.advance();
-            return false;
-        });
+        }
 
     start:
         auto curr = stream_buffer.current();
